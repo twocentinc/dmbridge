@@ -6,7 +6,7 @@ const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const docsContentRoute = `${publicBasePath}/llms.mdx/docs`;
 
 export const gitConfig = {
-  user: "Nexuist",
+  user: "twocentinc",
   repo: "dmbridge",
   branch: "main",
 };

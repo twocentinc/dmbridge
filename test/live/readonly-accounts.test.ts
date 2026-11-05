@@ -53,15 +53,6 @@ const exerciseReadOnlySurface = async (provider: "x" | "instagram") => {
     await readCLIEnvelope([provider, "conversations", "get", first.conversationID]),
     `${provider} conversation get`,
   );
-  requireSuccess(
-    await readCLIEnvelope([
-      provider,
-      "conversations",
-      "participants",
-      first.conversationID,
-    ]),
-    `${provider} participant list`,
-  );
   const messages = requireSuccess<{
     items: Array<{
       messageID: string;

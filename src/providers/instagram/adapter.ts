@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 
 import { downloadToFileURL } from "../../download.js";
 import {
+  asDmbridgeError,
   DmbridgeError,
   invalidRequest,
   MessageTypeSchema,
@@ -56,6 +57,18 @@ interface InstagramPage {
     next?: unknown;
   };
 }
+
+const INSTAGRAM_MESSAGE_FIELDS =
+  "id,created_time,from,to,message,attachments,shares,reactions,story,is_unsupported,tags,reply_to";
+
+const nestedMessagesField = (options: PageOptions) => {
+  const cursor = options.cursor;
+  if (cursor && !/^[A-Za-z0-9._~+/=-]+$/.test(cursor)) {
+    throw invalidRequest("Instagram message cursor contains unsafe characters.");
+  }
+  const after = cursor ? `.after(${cursor})` : "";
+  return `messages.limit(${Math.min(options.limit, 100)})${after}{${INSTAGRAM_MESSAGE_FIELDS}}`;
+};
 
 const INSTAGRAM_UNSUPPORTED_READ_TYPES = new Set<MessageType>([
   "location",
@@ -350,6 +363,8 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
   private async listConversationPage(
     options: PageOptions,
     folder: "requests" | null,
+    messageOptions: PageOptions = { cursor: null, limit: 1 },
+    participantID: string | null = null,
   ) {
     const profile = await this.profile();
     const data = await this.client.get<InstagramPage>(
@@ -357,9 +372,9 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
       {
         platform: "instagram",
         folder,
-        fields:
-          "id,updated_time,participants,messages.limit(1){id,created_time,from,to,message,attachments,shares,reactions,story,is_unsupported,tags}",
-        limit: Math.min(options.limit, 100),
+        user_id: participantID,
+        fields: `id,updated_time,participants,${nestedMessagesField(messageOptions)}`,
+        limit: participantID ? 1 : Math.min(options.limit, 100),
         after: options.cursor,
       },
     );
@@ -448,23 +463,101 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
 
   async getConversation(conversationID: string) {
     const profile = await this.profile();
-    const data = await this.client.get<JsonRecord>(
-      `/${encodeURIComponent(conversationID)}`,
-      { fields: "id,updated_time,participants" },
-    );
-    const normalized = this.normalizeConversation(data, profile.accountID);
-    if (!normalized || normalized.conversationID !== conversationID) {
-      throw new DmbridgeError(
-        "resource.notFound",
-        "Instagram did not return the requested conversation.",
+    try {
+      const data = await this.client.get<JsonRecord>(
+        `/${encodeURIComponent(conversationID)}`,
+        { fields: "id,updated_time,participants" },
       );
+      const normalized = this.normalizeConversation(data, profile.accountID);
+      if (normalized?.conversationID === conversationID) return normalized;
+    } catch (error) {
+      const normalized = asDmbridgeError(error);
+      if (
+        normalized.code !== "provider.requestFailed" ||
+        normalized.details.httpStatus !== 400
+      ) {
+        throw error;
+      }
+      for (const folder of [null, "requests"] as const) {
+        let cursor: string | null = null;
+        do {
+          const page = await this.listConversationPage(
+            { cursor, limit: 100 },
+            folder,
+          );
+          const conversation = page.items.find(
+            (candidate) => candidate.conversationID === conversationID,
+          );
+          if (conversation) return conversation;
+          cursor = page.nextCursor;
+        } while (cursor);
+      }
     }
-    return normalized;
+    throw new DmbridgeError(
+      "resource.notFound",
+      "Instagram did not return the requested conversation.",
+      { exitCode: 7 },
+    );
+  }
+
+  private normalizeMessagePage(
+    data: InstagramPage,
+    conversationID: string,
+    accountID: string,
+  ) {
+    const items = compactMap(array(data.data), (message) =>
+      this.normalizeMessage(message, conversationID, accountID),
+    );
+    const cursor = string(data.paging?.cursors?.after);
+    return {
+      items,
+      nextCursor: string(data.paging?.next) && cursor ? cursor : null,
+    };
+  }
+
+  private async embeddedMessagePage(
+    conversation: Conversation,
+    options: MessageListOptions,
+    accountID: string,
+  ) {
+    const participantID = conversation.participants.find(
+      (participant) => participant.userID !== accountID,
+    )?.userID;
+    if (!participantID) return null;
+    for (const folder of [null, "requests"] as const) {
+      const page = await this.listConversationPage(
+        { cursor: null, limit: 1 },
+        folder,
+        { cursor: options.cursor, limit: options.limit },
+        participantID,
+      );
+      const target = page.items.find(
+        (candidate) => candidate.conversationID === options.conversationID,
+      ) ?? page.items[0];
+      const embedded = record(record(target?.providerData)?.messages);
+      if (!embedded) continue;
+      const messages = this.normalizeMessagePage(
+        embedded as InstagramPage,
+        options.conversationID,
+        accountID,
+      );
+      return {
+        ...messages,
+        items: messages.items.slice(0, options.limit),
+      };
+    }
+    return null;
   }
 
   async listMessages(options: MessageListOptions) {
     const profile = await this.profile();
-    await this.getConversation(options.conversationID);
+    const conversation = await this.getConversation(options.conversationID);
+    const embedded = await this.embeddedMessagePage(
+      conversation,
+      options,
+      profile.accountID,
+    );
+    if (embedded) return embedded;
     const data = await this.client.get<InstagramPage>(
       `/${encodeURIComponent(options.conversationID)}/messages`,
       {
@@ -474,18 +567,11 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
         after: options.cursor,
       },
     );
-    const items = compactMap(array(data.data), (message) =>
-      this.normalizeMessage(
-        message,
-        options.conversationID,
-        profile.accountID,
-      ),
+    return this.normalizeMessagePage(
+      data,
+      options.conversationID,
+      profile.accountID,
     );
-    const cursor = string(data.paging?.cursors?.after);
-    return {
-      items,
-      nextCursor: string(data.paging?.next) && cursor ? cursor : null,
-    };
   }
 
   async getMessage(messageID: string) {

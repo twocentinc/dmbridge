@@ -43,7 +43,7 @@ export default function HomePage() {
                 Get started <ArrowRight className="size-4" />
               </Link>
               <a
-                href="https://github.com/Nexuist/dmbridge/releases/latest"
+                href="https://github.com/twocentinc/dmbridge/releases/latest"
                 className="tc-secondary-button tc-download-button inline-flex items-center gap-2 rounded-full border px-5 py-3 font-semibold transition-colors"
               >
                 <Download className="size-4" /> Download dmbridge
