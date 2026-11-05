@@ -43,6 +43,8 @@ export const XAccountAddRequestSchema = z.union([
 export type XOAuthClient = z.infer<typeof XOAuthClientSchema>;
 export type XOAuthCompletion = z.infer<typeof XOAuthCompletionSchema>;
 
+export const XRefreshModeSchema = z.enum(["automatic", "external"]);
+
 export const XCredentialSchema = z.strictObject({
   clientID: NonEmptyStringSchema,
   clientSecret: NonEmptyStringSchema.nullable(),
@@ -55,6 +57,11 @@ export const XCredentialSchema = z.strictObject({
   accountUsername: NonEmptyStringSchema,
   grantedScopes: z.array(z.string()),
   realmTokenIssuerURL: NonEmptyStringSchema.nullable(),
+  refreshMode: XRefreshModeSchema.default("automatic"),
+});
+
+export const XExternalCredentialImportSchema = XCredentialSchema.extend({
+  refreshMode: z.literal("external"),
 });
 
 export type XCredential = z.infer<typeof XCredentialSchema>;
@@ -101,4 +108,11 @@ export const normalizeXCredential = (value: unknown) =>
     XCredentialSchema,
     value,
     "The stored X credential is invalid.",
+  ));
+
+export const normalizeExternalXCredential = (value: unknown) =>
+  requireConfidentialSecret(parseCredential(
+    XExternalCredentialImportSchema,
+    value,
+    "External X credential import requires a complete credential with refreshMode external.",
   ));

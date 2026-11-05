@@ -1,6 +1,6 @@
 {
   "name": "dmbridge",
-  "version": "2.3.7",
+  "version": "2.4.0",
   "description": "A provider-neutral JSON CLI for direct messages.",
   "type": "module",
   "bin": {

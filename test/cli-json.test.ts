@@ -79,9 +79,9 @@ test("CLI global controls provide scoped help, version, JSON, and diagnostics", 
     const envelope = JSON.parse((await runCLI(args)).stdout) as {
       result: { version: string; protocolVersion: number; schemaVersion: number };
     };
-    assert.equal(envelope.result.version, "2.3.7");
+    assert.equal(envelope.result.version, "2.4.0");
     assert.equal(envelope.result.protocolVersion, 1);
-    assert.equal(envelope.result.schemaVersion, 5);
+    assert.equal(envelope.result.schemaVersion, 6);
   }
 
   const scoped = JSON.parse(
@@ -601,11 +601,12 @@ test("doctor combines capabilities with versioned schema discovery", async () =>
     };
   };
   assert.equal(listed.result.capabilities.provider, "x");
-  assert.equal(listed.result.contracts.schemaVersion, 5);
+  assert.equal(listed.result.contracts.schemaVersion, 6);
   for (const name of [
     "attachment",
     "attachment.download",
     "accounts.add.request",
+    "accounts.import.x.request",
     "accounts.result",
     "capabilities",
     "conversation",
@@ -627,13 +628,105 @@ test("doctor combines capabilities with versioned schema discovery", async () =>
   }
   const fetched = listed.result.contracts.selected;
   assert.equal(fetched.name, "message");
-  assert.match(fetched.schema.$id, /\/v5\/message\.json$/);
+  assert.match(fetched.schema.$id, /\/v6\/message\.json$/);
   assert.equal(
     fetched.schema.$schema,
     "https://json-schema.org/draft/2020-12/schema",
   );
   assert.match(
     fetched.schema.properties.attachments.items.$ref,
-    /\/v5\/attachment\.json$/,
+    /\/v6\/attachment\.json$/,
   );
+});
+
+test("external X credential import is atomic, noninteractive, and secret-safe", async () => {
+  const home = await mkdtemp(join(tmpdir(), "dmbridge-external-import-"));
+  const requestPath = join(home, "external-x.json");
+  const credential = xCredential({
+    accessToken: "external-access-secret",
+    refreshToken: "external-refresh-secret",
+    expiresAt: Date.now() + 7_200_000,
+    refreshMode: "external",
+  });
+  await writeFile(requestPath, JSON.stringify(credential), { mode: 0o600 });
+
+  const preview = await runCLI([
+    "accounts",
+    "import",
+    "x",
+    "--account",
+    "personal",
+    "--request",
+    requestPath,
+    "--dry-run",
+    "--no-input",
+    "--home",
+    home,
+  ]);
+  assert.doesNotMatch(preview.stdout, /external-(?:access|refresh)-secret/);
+  const previewEnvelope = JSON.parse(preview.stdout) as {
+    result: { imported: boolean; refreshMode: string };
+  };
+  assert.equal(previewEnvelope.result.imported, false);
+  assert.equal(previewEnvelope.result.refreshMode, "external");
+
+  const imported = await runCLI([
+    "accounts",
+    "import",
+    "x",
+    "--account",
+    "personal",
+    "--request",
+    requestPath,
+    "--no-input",
+    "--home",
+    home,
+  ]);
+  assert.doesNotMatch(imported.stdout, /external-(?:access|refresh)-secret/);
+  const store = new AuthStore(home);
+  await store.initialize();
+  const saved = await store.readCredential<Record<string, unknown>>(
+    "x",
+    "personal",
+  );
+  assert.equal(saved.accessToken, "external-access-secret");
+  assert.equal(saved.refreshToken, "external-refresh-secret");
+  assert.equal(saved.refreshMode, "external");
+
+  await assert.rejects(
+    runCLI([
+      "accounts",
+      "import",
+      "x",
+      "--account",
+      "personal",
+      "--request",
+      requestPath,
+      "--no-input",
+      "--home",
+      home,
+    ]),
+    (error: unknown) => {
+      const envelope = JSON.parse(
+        (error as { stdout?: string }).stdout ?? "{}",
+      ) as { error?: { code?: string } };
+      assert.equal(envelope.error?.code, "bridge.confirmationRequired");
+      return true;
+    },
+  );
+
+  const replaced = await runCLI([
+    "accounts",
+    "import",
+    "x",
+    "--account",
+    "personal",
+    "--request",
+    requestPath,
+    "--yes",
+    "--no-input",
+    "--home",
+    home,
+  ]);
+  assert.doesNotMatch(replaced.stdout, /external-(?:access|refresh)-secret/);
 });

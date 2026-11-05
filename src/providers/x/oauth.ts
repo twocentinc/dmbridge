@@ -28,6 +28,13 @@ const X_SCOPES = [
 ];
 export const X_REFRESH_EARLY_MS = 60_000;
 
+const externalCredentialUpdateRequired = () =>
+  new DmbridgeError(
+    "auth.externalCredentialUpdateRequired",
+    "The externally managed X credential is expired or near expiry; import a fresh credential before retrying.",
+    { exitCode: 3 },
+  );
+
 const tokenRequest = async (
   credential: XOAuthClient | XCredential,
   body: URLSearchParams,
@@ -185,6 +192,9 @@ export const refreshXOAuth = async (
   account: string,
   current: XCredential,
 ) => {
+  if (current.refreshMode === "external") {
+    throw externalCredentialUpdateRequired();
+  }
   if (!current.refreshToken) {
     throw new DmbridgeError(
       "auth.reauthorizationRequired",
@@ -234,6 +244,9 @@ export const ensureFreshXOAuth = async (
   now = Date.now(),
 ) => {
   if (current.expiresAt > now + X_REFRESH_EARLY_MS) return current;
+  if (current.refreshMode === "external") {
+    throw externalCredentialUpdateRequired();
+  }
   await refreshXOAuth(store, account, current);
   return normalizeXCredential(
     await store.readCredential<XCredential>("x", account),

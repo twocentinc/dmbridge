@@ -29,6 +29,7 @@ import {
   type Reaction,
 } from "../../protocol.js";
 import type { XCredential } from "./credentials.js";
+import { X_REFRESH_EARLY_MS } from "./oauth.js";
 import { ProviderClient } from "../http.js";
 import { timeoutSignal } from "../../runtime.js";
 import {
@@ -231,17 +232,25 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
 
   async authStatus(live: boolean) {
     const passcode = await xPasscodeStatus(this.store, this.account);
+    const now = Date.now();
     const expiresAt = new Date(this.credential.expiresAt).toISOString();
+    const externalCredentialUpdateRequired =
+      this.credential.refreshMode === "external" &&
+      this.credential.expiresAt <= now + X_REFRESH_EARLY_MS;
     const base = {
       account: this.account,
       configured: true,
       connected: null,
       accountUserID: this.credential.accountUserID,
       accountUsername: this.credential.accountUsername,
+      refreshMode: this.credential.refreshMode,
       expiresAt,
-      expired: this.credential.expiresAt <= Date.now(),
+      expired: this.credential.expiresAt <= now,
       reauthorizationRequired:
-        this.credential.expiresAt <= Date.now() && !this.credential.refreshToken,
+        this.credential.refreshMode === "automatic" &&
+        this.credential.expiresAt <= now &&
+        !this.credential.refreshToken,
+      externalCredentialUpdateRequired,
       grantedScopes: this.credential.grantedScopes,
       requiredReadScopesPresent: this.hasScopes(
         ...X_READ_SCOPES,
@@ -320,6 +329,9 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
   async diagnose(account: string, live: boolean) {
     const { diagnostics, local } = await this.diagnosticBase(account, live);
     const expired = local.expired === true;
+    const externalUpdateRequired =
+      local.externalCredentialUpdateRequired === true;
+    const tokenUnavailable = expired || externalUpdateRequired;
     const readScopes = local.requiredReadScopesPresent === true;
     const writeScopes = local.requiredWriteScopesPresent === true;
     const passcode = record(local.xchatPasscode) ?? {};
@@ -327,11 +339,16 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
     diagnostics.checks.push(
       {
         id: "x.token",
-        status: expired ? "fail" : "pass",
-        message: expired
-          ? "The X OAuth token is expired."
-          : "The X OAuth token is current.",
-        details: { expiresAt: local.expiresAt ?? null },
+        status: tokenUnavailable ? "fail" : "pass",
+        message: externalUpdateRequired
+          ? "The externally managed X OAuth token is expired or near expiry."
+          : expired
+            ? "The X OAuth token is expired."
+            : "The X OAuth token is current.",
+        details: {
+          expiresAt: local.expiresAt ?? null,
+          refreshMode: local.refreshMode ?? null,
+        },
       },
       {
         id: "x.readScopes",
@@ -358,8 +375,9 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
         details: {},
       },
     );
-    diagnostics.readReady &&= !expired && readScopes && passcodeEnabled;
-    diagnostics.mutationReady &&= !expired && writeScopes && passcodeEnabled;
+    diagnostics.readReady &&= !tokenUnavailable && readScopes && passcodeEnabled;
+    diagnostics.mutationReady &&=
+      !tokenUnavailable && writeScopes && passcodeEnabled;
     diagnostics.healthy = diagnostics.checks.every(
       (check) => check.status !== "fail",
     );

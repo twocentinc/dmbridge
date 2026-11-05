@@ -31,6 +31,8 @@ npm run package:executable
 - stdout/stderr separation and exit codes match the README.
 - Account-add input is an exact four-variant schema: Instagram credential,
   X OAuth client, X callback URL, or X code/state.
+- External X credential import accepts secrets only through `--request`, never
+  echoes token values, and disables dmbridge refresh for that credential.
 - New timestamps are ISO 8601 and numeric units are explicit.
 - New mutations support dry-run and expose `--yes` only for confirmation bypass.
 

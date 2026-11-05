@@ -29,6 +29,13 @@ For unattended calls, normally include:
 Use `--quiet` when stderr diagnostics are not wanted. Do not combine `--quiet`
 with verbosity flags.
 
+For an X account whose OAuth lifecycle is owned by another trusted local
+process, import the complete credential with `accounts import x --request -`
+and `refreshMode: "external"`. dmbridge will not refresh that credential.
+Never hand-edit the credential file, and never allow two processes to refresh
+the same token chain. Discover the request contract with
+`x doctor --schema accounts.import.x.request`.
+
 ## Parsing results
 
 stdout contains exactly one JSON protocol envelope. stderr contains only

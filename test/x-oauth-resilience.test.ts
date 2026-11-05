@@ -6,6 +6,7 @@ import {
   completeXOAuth,
   ensureFreshXOAuth,
   normalizeXCredential,
+  refreshXOAuth,
 } from "../src/providers/x/index.js";
 import { mockFetch, temporaryStore, xCredential } from "./helpers.js";
 
@@ -133,4 +134,45 @@ test("rejected X refresh produces an actionable reauthorization error", async (t
       return true;
     },
   );
+});
+
+test("externally managed X credentials never refresh inside dmbridge", async (t) => {
+  mockFetch(t, async () => {
+    assert.fail("dmbridge must not refresh an externally managed credential");
+  });
+  const { store } = await temporaryStore("dmbridge-external-refresh-");
+  const external = xCredential({
+    accessToken: "external-access",
+    refreshToken: "external-refresh",
+    expiresAt: Date.now() - 1,
+    refreshMode: "external",
+  });
+  await store.storeCredential("x", "personal", external);
+  await assert.rejects(
+    ensureFreshXOAuth(store, "personal", external),
+    (error: unknown) => {
+      assert.equal(
+        (error as { code?: string }).code,
+        "auth.externalCredentialUpdateRequired",
+      );
+      assert.match((error as Error).message, /import a fresh credential/i);
+      return true;
+    },
+  );
+  await assert.rejects(
+    refreshXOAuth(store, "personal", external),
+    (error: unknown) => {
+      assert.equal(
+        (error as { code?: string }).code,
+        "auth.externalCredentialUpdateRequired",
+      );
+      return true;
+    },
+  );
+  const saved = normalizeXCredential(
+    await store.readCredential("x", "personal"),
+  );
+  assert.equal(saved.accessToken, "external-access");
+  assert.equal(saved.refreshToken, "external-refresh");
+  assert.equal(saved.refreshMode, "external");
 });

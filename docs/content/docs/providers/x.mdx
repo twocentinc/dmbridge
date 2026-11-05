@@ -49,3 +49,37 @@ explicit confirmation. Set `DMBRIDGE_BIN` when the executable is not named
 ```sh
 DMBRIDGE_BIN=/absolute/path/to/dmbridge ./scripts/connect-x.sh
 ```
+
+## Externally managed OAuth credentials
+
+By default, dmbridge owns the X OAuth refresh lifecycle and atomically stores
+rotated access and refresh tokens. Use external refresh mode only when one
+trusted local integration is the sole OAuth writer and dmbridge is only a
+credential consumer.
+
+The external writer must provide a complete X credential with
+`refreshMode: "external"`. Inspect the current request contract instead of
+guessing fields:
+
+```sh
+dmbridge x doctor --schema accounts.import.x.request --no-input
+```
+
+Validate a prepared credential without storing it, then import it:
+
+```sh
+dmbridge accounts import x --account personal --request credential.json \
+  --dry-run --no-input
+dmbridge accounts import x --account personal --request credential.json \
+  --yes --no-input
+```
+
+Use `--request -` to read JSON from stdin. Never place tokens in command-line
+arguments, logs, or prompts, and never hand-edit `credentials.json`.
+
+For an externally managed account, dmbridge never exchanges the refresh token.
+The external writer must atomically import the complete credential after every
+authorization or refresh. Normal commands fail with
+`auth.externalCredentialUpdateRequired` when the imported access token is
+expired or within the refresh safety window. Do not let two processes refresh
+the same token chain.

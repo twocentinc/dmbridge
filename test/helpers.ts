@@ -99,6 +99,7 @@ export const xCredential = (
   accountUsername: "owner",
   grantedScopes: ["users.read", "dm.read"],
   realmTokenIssuerURL: null,
+  refreshMode: "automatic",
   ...overrides,
 });
 

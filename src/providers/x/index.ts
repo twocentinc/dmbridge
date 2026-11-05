@@ -7,7 +7,7 @@ import {
 } from "./credentials.js";
 import { ensureFreshXOAuth } from "./oauth.js";
 
-export { setXPasscode } from "./accounts.js";
+export { importExternalXCredential, setXPasscode } from "./accounts.js";
 export { XAdapter, realmTokensFromJuiceboxConfig } from "./adapter.js";
 export type { XAdapterDependencies } from "./adapter.js";
 export {
@@ -16,10 +16,12 @@ export {
   normalizeXOAuthClient,
   XAccountAddRequestSchema,
   XCredentialSchema,
+  XExternalCredentialImportSchema,
   XOAuthCallbackURLSchema,
   XOAuthCodeSchema,
   XOAuthCompletionSchema,
   XOAuthClientSchema,
+  XRefreshModeSchema,
 } from "./credentials.js";
 export type {
   XCredential,

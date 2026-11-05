@@ -1,6 +1,6 @@
 # dmbridge
 
-[![version](https://img.shields.io/badge/version-2.3.7-blue)](package.json)
+[![version](https://img.shields.io/badge/version-2.4.0-blue)](package.json)
 [![release](https://github.com/twocentinc/dmbridge/actions/workflows/release.yml/badge.svg)](https://github.com/twocentinc/dmbridge/actions/workflows/release.yml)
 [![docs](https://github.com/twocentinc/dmbridge/actions/workflows/docs.yml/badge.svg)](https://twocentinc.github.io/dmbridge/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -27,6 +27,11 @@ directly to X and Instagram—no dmbridge-hosted middleman and no subscription.
 
 Use `dmbridge --help` for command discovery and `doctor --schema <name>` for
 machine-readable request and result contracts.
+
+OAuth credentials normally refresh automatically. Integrations that own the
+refresh-token lifecycle can instead import a complete X credential with
+`refreshMode: "external"`; dmbridge will use it without refreshing it. See the
+[X provider guide](https://twocentinc.github.io/dmbridge/docs/providers/x/#externally-managed-oauth-credentials).
 
 ## License
 

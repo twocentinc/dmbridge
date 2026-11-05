@@ -3,6 +3,7 @@
   "dmbridge version",
   "dmbridge accounts list [provider]",
   "dmbridge accounts add <provider> --account <name> --request <file-or-dash> [--dry-run] [--yes]",
+  "dmbridge accounts import x --account <name> --request <file-or-dash> [--dry-run] [--yes]",
   "dmbridge accounts default <provider> --account <name> [--dry-run]",
   "dmbridge accounts remove <provider> --account <name> [--dry-run] [--yes]",
   "dmbridge accounts set-passcode x --account <name> --secret <file-or-dash> [--dry-run] [--yes]",

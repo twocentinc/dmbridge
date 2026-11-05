@@ -2,7 +2,10 @@ import type { AuthStore } from "../../auth.js";
 import { invalidRequest, readSecret } from "../../protocol.js";
 import { confirmDestructive } from "../../runtime.js";
 import { record } from "../normalize.js";
-import { normalizeXOAuthClient } from "./credentials.js";
+import {
+  normalizeExternalXCredential,
+  normalizeXOAuthClient,
+} from "./credentials.js";
 import { beginXOAuth, completeXOAuth } from "./oauth.js";
 import { storeXPasscode, xPasscodeStatus } from "./state.js";
 
@@ -43,6 +46,31 @@ export const addXAccount = async (
         redirectURI: client.redirectURI,
       })
     : beginXOAuth(store, account, client);
+};
+
+export const importExternalXCredential = async (
+  store: AuthStore,
+  account: string,
+  request: unknown,
+  dryRun: boolean,
+) => {
+  const credential = normalizeExternalXCredential(request);
+  const result = {
+    provider: "x" as const,
+    account,
+    refreshMode: credential.refreshMode,
+    expiresAt: new Date(credential.expiresAt).toISOString(),
+    grantedScopes: credential.grantedScopes,
+    imported: !dryRun,
+  };
+  if (dryRun) {
+    return {
+      ...dryRunResult(account, "account.import.external-oauth"),
+      ...result,
+    };
+  }
+  await store.storeCredential("x", account, credential);
+  return result;
 };
 
 export const setXPasscode = async (

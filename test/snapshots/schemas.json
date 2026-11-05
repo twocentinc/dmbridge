@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "schemas": {
     "participant": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -28,7 +28,7 @@
         "displayName"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/participant.json"
+      "$id": "https://dmbridge.dev/schemas/v6/participant.json"
     },
     "attachment": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -98,7 +98,7 @@
         "sourceURL"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/attachment.json"
+      "$id": "https://dmbridge.dev/schemas/v6/attachment.json"
     },
     "reaction": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -127,7 +127,7 @@
         "reactedByAuthenticatedUser"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/reaction.json"
+      "$id": "https://dmbridge.dev/schemas/v6/reaction.json"
     },
     "message": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -218,13 +218,13 @@
         "attachments": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/attachment.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/attachment.json"
           }
         },
         "reactions": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/reaction.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/reaction.json"
           }
         },
         "providerType": {
@@ -254,7 +254,7 @@
         "providerType"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/message.json"
+      "$id": "https://dmbridge.dev/schemas/v6/message.json"
     },
     "conversation": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -289,7 +289,7 @@
         "participants": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/participant.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/participant.json"
           }
         },
         "unreadCount": {
@@ -365,7 +365,7 @@
         "archived"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/conversation.json"
+      "$id": "https://dmbridge.dev/schemas/v6/conversation.json"
     },
     "messageRequest": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -376,7 +376,7 @@
           "minLength": 1
         },
         "conversation": {
-          "$ref": "https://dmbridge.dev/schemas/v5/conversation.json"
+          "$ref": "https://dmbridge.dev/schemas/v6/conversation.json"
         },
         "state": {
           "type": "string",
@@ -439,7 +439,7 @@
         "detailReadMarksDelivered"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/messageRequest.json"
+      "$id": "https://dmbridge.dev/schemas/v6/messageRequest.json"
     },
     "capabilities": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -639,7 +639,7 @@
         "limitations"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/capabilities.json"
+      "$id": "https://dmbridge.dev/schemas/v6/capabilities.json"
     },
     "page.conversations": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -648,7 +648,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/conversation.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/conversation.json"
           }
         },
         "nextCursor": {
@@ -663,7 +663,7 @@
         "nextCursor"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/page.conversations.json"
+      "$id": "https://dmbridge.dev/schemas/v6/page.conversations.json"
     },
     "page.messages": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -672,7 +672,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/message.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/message.json"
           }
         },
         "nextCursor": {
@@ -687,7 +687,7 @@
         "nextCursor"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/page.messages.json"
+      "$id": "https://dmbridge.dev/schemas/v6/page.messages.json"
     },
     "page.messageRequests": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -696,7 +696,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/messageRequest.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/messageRequest.json"
           }
         },
         "nextCursor": {
@@ -711,7 +711,7 @@
         "nextCursor"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/page.messageRequests.json"
+      "$id": "https://dmbridge.dev/schemas/v6/page.messageRequests.json"
     },
     "page.messageRequestMessages": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -720,7 +720,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/message.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/message.json"
           }
         },
         "nextCursor": {
@@ -742,7 +742,7 @@
         "hasMoreMessages"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/page.messageRequestMessages.json"
+      "$id": "https://dmbridge.dev/schemas/v6/page.messageRequestMessages.json"
     },
     "mutation.result": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -764,7 +764,7 @@
         "effect"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/mutation.result.json"
+      "$id": "https://dmbridge.dev/schemas/v6/mutation.result.json"
     },
     "envelope.success": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -817,7 +817,7 @@
         "result"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/envelope.success.json"
+      "$id": "https://dmbridge.dev/schemas/v6/envelope.success.json"
     },
     "envelope.error": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -899,7 +899,7 @@
         "error"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/envelope.error.json"
+      "$id": "https://dmbridge.dev/schemas/v6/envelope.error.json"
     },
     "accounts.result": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -962,7 +962,7 @@
           "additionalProperties": false
         }
       ],
-      "$id": "https://dmbridge.dev/schemas/v5/accounts.result.json"
+      "$id": "https://dmbridge.dev/schemas/v6/accounts.result.json"
     },
     "doctor": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1024,7 +1024,7 @@
           }
         },
         "capabilities": {
-          "$ref": "https://dmbridge.dev/schemas/v5/capabilities.json"
+          "$ref": "https://dmbridge.dev/schemas/v6/capabilities.json"
         },
         "contracts": {
           "type": "object",
@@ -1082,7 +1082,7 @@
         "contracts"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/doctor.json"
+      "$id": "https://dmbridge.dev/schemas/v6/doctor.json"
     },
     "reactions.result": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1091,7 +1091,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "https://dmbridge.dev/schemas/v5/reaction.json"
+            "$ref": "https://dmbridge.dev/schemas/v6/reaction.json"
           }
         }
       },
@@ -1099,7 +1099,7 @@
         "items"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/reactions.result.json"
+      "$id": "https://dmbridge.dev/schemas/v6/reactions.result.json"
     },
     "attachment.download": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1132,7 +1132,7 @@
         "sha256"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/attachment.download.json"
+      "$id": "https://dmbridge.dev/schemas/v6/attachment.download.json"
     },
     "accounts.add.request": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1274,7 +1274,103 @@
           "additionalProperties": false
         }
       ],
-      "$id": "https://dmbridge.dev/schemas/v5/accounts.add.request.json"
+      "$id": "https://dmbridge.dev/schemas/v6/accounts.add.request.json"
+    },
+    "accounts.import.x.request": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "clientID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clientSecret": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clientType": {
+          "type": "string",
+          "enum": [
+            "public",
+            "confidential"
+          ]
+        },
+        "redirectURI": {
+          "type": "string",
+          "format": "uri"
+        },
+        "accessToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refreshToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "accountUserID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accountUsername": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grantedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "realmTokenIssuerURL": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "refreshMode": {
+          "type": "string",
+          "const": "external"
+        }
+      },
+      "required": [
+        "clientID",
+        "clientSecret",
+        "clientType",
+        "redirectURI",
+        "accessToken",
+        "refreshToken",
+        "expiresAt",
+        "accountUserID",
+        "accountUsername",
+        "grantedScopes",
+        "realmTokenIssuerURL",
+        "refreshMode"
+      ],
+      "additionalProperties": false,
+      "description": "Complete externally refreshed X OAuth credential. Secrets are read from --request or stdin and are never accepted as flags or returned in command results.",
+      "$id": "https://dmbridge.dev/schemas/v6/accounts.import.x.request.json"
     },
     "message.send": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1330,7 +1426,7 @@
         "type"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/message.send.json"
+      "$id": "https://dmbridge.dev/schemas/v6/message.send.json"
     },
     "message.edit": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1350,7 +1446,7 @@
         "text"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/message.edit.json"
+      "$id": "https://dmbridge.dev/schemas/v6/message.edit.json"
     },
     "reaction.request": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1365,7 +1461,7 @@
         "reaction"
       ],
       "additionalProperties": false,
-      "$id": "https://dmbridge.dev/schemas/v5/reaction.request.json"
+      "$id": "https://dmbridge.dev/schemas/v6/reaction.request.json"
     }
   }
 }

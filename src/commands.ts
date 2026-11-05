@@ -8,7 +8,10 @@ import {
   providerDefinition,
 } from "./providers/registry.js";
 import type { ListOptions, PageOptions, ProviderAdapter } from "./providers/types.js";
-import { setXPasscode } from "./providers/x/index.js";
+import {
+  importExternalXCredential,
+  setXPasscode,
+} from "./providers/x/index.js";
 import {
   getSchema,
   invalidRequest,
@@ -334,6 +337,29 @@ const definitions: readonly Definition[] = [
         );
       }
       return providerDefinition(provider).addAccount(
+        authStore,
+        account,
+        request,
+        hasOption(context, "dry-run"),
+      );
+    },
+  },
+  {
+    path: "accounts import x",
+    scope: "store",
+    options: [["--account <name>", true], ...requestFlags, ...dryRun, "--yes"],
+    handler: async (context) => {
+      const account = requiredOption(context, "account");
+      const authStore = required(context.store, "store");
+      const request = await readRequestJSON(requiredOption(context, "request"));
+      const exists = (await authStore.listAccounts("x")).includes(account);
+      if (exists && !hasOption(context, "dry-run")) {
+        await confirmDestructive(
+          hasOption(context, "yes"),
+          `Replace the saved X authorization for account ${account} with an externally managed credential?`,
+        );
+      }
+      return importExternalXCredential(
         authStore,
         account,
         request,

@@ -5,10 +5,11 @@ import { InstagramCredentialSchema } from "./providers/instagram/credentials.js"
 import {
   XAccountAddRequestSchema,
   XChatCapabilitiesSchema,
+  XExternalCredentialImportSchema,
 } from "./providers/x/credentials.js";
 
 export const PROTOCOL_VERSION = 1 as const;
-export const SCHEMA_VERSION = 5 as const;
+export const SCHEMA_VERSION = 6 as const;
 
 export const ProviderIDSchema = z.enum(["x", "instagram"]);
 export const RetrySafetySchema = z.enum(["safe", "unsafe", "never"]);
@@ -296,6 +297,9 @@ const zodSchemas = {
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
   }),
   "accounts.add.request": AccountAddRequestSchema,
+  "accounts.import.x.request": XExternalCredentialImportSchema.describe(
+    "Complete externally refreshed X OAuth credential. Secrets are read from --request or stdin and are never accepted as flags or returned in command results.",
+  ),
   "message.send": z.strictObject({
     type: MessageTypeSchema,
     text: z.string().optional(),
