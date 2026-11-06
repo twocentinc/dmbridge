@@ -30,7 +30,6 @@ try {
   for (const required of [
     "LICENSE",
     "README.md",
-    "docs/content/docs/agents.mdx",
     "dist/src/cli.js",
     "package.json",
     "scripts/connect-ig.sh",
@@ -39,6 +38,7 @@ try {
     assert.ok(paths.includes(required), `packed artifact is missing ${required}`);
   }
   assert.ok(!paths.some((path) => path.startsWith("test/")));
+  assert.ok(!paths.some((path) => path.startsWith("docs/")));
   assert.ok(
     !paths.some(
       (path) => path.endsWith(".ts") && !path.endsWith(".d.ts"),
