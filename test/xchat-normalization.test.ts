@@ -27,3 +27,17 @@ test("X runtime snake_case content preserves text, edits, reactions, replies and
   const shared = normalize({ content_type: "text", text: "", attachments: [{ attachment_type: "post", postUrl: "https://x.com/example/status/123", restId: "123" }], replying_to_preview: { message_id: "800" } });
   assert.equal(shared.type, "sharedPost"); assert.equal(shared.attachments[0]?.sourceURL, "https://x.com/example/status/123"); assert.ok(shared.replyToMessageID);
 });
+
+test("X fetches missing sender profiles in one bounded users lookup", async (t) => {
+  const { mockRoutes } = await import("./helpers.js");
+  const requests = mockRoutes(t, { "GET /2/users?": { data: [{ id: "333", username: "missing", name: "Missing Sender", profile_image_url: "https://pbs.twimg.com/profile_images/missing.jpg" }] } });
+  const { store } = await temporaryStore("dmbridge-x-profiles-");
+  const internal = new XAdapter(xCredential(), "personal", store) as unknown as { hydrateSenders(value: unknown): Promise<void>; normalizeEvent(event: unknown, encoded: undefined, conversationID: string): { senderUsername: string } };
+  const event = {type:"message",id:"901",senderId:"333",createdAtMsec:1760313600000,content:{content_type:"text",text:"Hello"}};
+  await internal.hydrateSenders({decrypted:{messages:[{event},{event}]}});
+  await internal.hydrateSenders({decrypted:{messages:[{event}]}});
+  assert.equal(requests.length,1);
+  assert.equal(new URL(requests[0]!.url).searchParams.get("ids"),"333");
+  assert.match(new URL(requests[0]!.url).searchParams.get("user.fields")!,/profile_image_url/);
+  assert.equal(internal.normalizeEvent(event,undefined,"111-333").senderUsername,"missing");
+});

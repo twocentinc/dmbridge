@@ -71,6 +71,7 @@ export const requestJSON = async <T>(
         details: {
           httpStatus: response.status,
           retryAfter: response.headers.get("retry-after"),
+          rateLimitReset: response.headers.get("x-rate-limit-reset"),
           outcomeUnknown: Boolean(options.mutation),
         },
         exitCode: 5,

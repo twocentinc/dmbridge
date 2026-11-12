@@ -413,6 +413,17 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
     return users;
   }
 
+  private async hydrateSenders(loaded: LoadedSession) {
+    const missing = [...new Set(loaded.decrypted.messages
+      .filter(({ event }) => event.type === "message")
+      .map(({ event }) => id(event.senderId))
+      .filter((userID): userID is string => !!userID && !this.senderProfiles.has(userID)))];
+    for (let offset = 0; offset < missing.length; offset += 100) {
+      const response = await this.client.get<XPage>("/2/users", { ids: missing.slice(offset, offset + 100).join(","), "user.fields": "id,name,username,profile_image_url" });
+      this.usersFromIncludes({ users: array(response.data) });
+    }
+  }
+
   private normalizeConversation(
     candidate: unknown,
     users: Map<string, Participant>,
@@ -1001,11 +1012,10 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       options.limit,
       options.cursor,
     );
-    return this.withSession(this.session(conversation, page), (loaded) => ({
-        items: this.normalizedMessages(loaded, options.conversationID),
-        nextCursor: string(record(page.meta)?.next_token),
-      }),
-    );
+    return this.withSession(this.session(conversation, page), async (loaded) => {
+      await this.hydrateSenders(loaded);
+      return { items: this.normalizedMessages(loaded, options.conversationID), nextCursor: string(record(page.meta)?.next_token) };
+    });
   }
 
   private async locateMessage(value: string) {
