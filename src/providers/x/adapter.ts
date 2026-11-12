@@ -195,6 +195,18 @@ export const realmTokensFromJuiceboxConfig = (value: unknown) => {
   return tokens;
 };
 
+// SDK 0.5 emits snake_case content fields at runtime despite its camelCase types.
+function sdkFields(value: unknown): JsonRecord | null {
+  const source = record(value);
+  if (!source) return null;
+  const result = { ...source };
+  for (const key of ["contentType", "newText", "targetMessageId", "replyingToPreview", "messageId", "sequenceId", "attachmentType", "mediaHashKey", "mediaType", "legacyMediaUrlHttps", "legacyMediaPreviewUrl", "postUrl"]) {
+    const snake = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    result[key] ??= source[snake];
+  }
+  return result;
+}
+
 const messageTypeForAttachment = (value: JsonRecord): MessageType => {
   const explicit = string(value.attachmentType)?.toLowerCase();
   const mediaType = string(value.mediaType)?.toLowerCase();
@@ -210,6 +222,7 @@ const messageTypeForAttachment = (value: JsonRecord): MessageType => {
 export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
   readonly id = "x" as const;
   private readonly client: ProviderClient;
+  private readonly senderProfiles = new Map<string, { username: string | null; displayName: string | null; profilePictureURL: string | null }>();
 
   constructor(
     private readonly credential: XCredential,
@@ -390,6 +403,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       const user = record(candidate);
       const userID = id(user?.id);
       if (!userID) continue;
+      this.senderProfiles.set(userID, { username: string(user?.username), displayName: string(user?.name), profilePictureURL: string(user?.profile_image_url) });
       users.set(userID, {
         userID,
         username: string(user?.username),
@@ -397,6 +411,17 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       });
     }
     return users;
+  }
+
+  private async hydrateSenders(loaded: LoadedSession) {
+    const missing = [...new Set(loaded.decrypted.messages
+      .filter(({ event }) => event.type === "message")
+      .map(({ event }) => id(event.senderId))
+      .filter((userID): userID is string => !!userID && !this.senderProfiles.has(userID)))];
+    for (let offset = 0; offset < missing.length; offset += 100) {
+      const response = await this.client.get<XPage>("/2/users", { ids: missing.slice(offset, offset + 100).join(","), "user.fields": "id,name,username,profile_image_url" });
+      this.usersFromIncludes({ users: array(response.data) });
+    }
   }
 
   private normalizeConversation(
@@ -455,7 +480,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       max_results: Math.min(options.limit, 1000),
       "chat_conversation.fields": CONVERSATION_FIELDS,
       expansions: "participant_ids,member_ids,admin_ids",
-      "user.fields": "id,name,username",
+      "user.fields": "id,name,username,profile_image_url",
       pagination_token: options.cursor,
       unread_only: options.unread || null,
     });
@@ -651,7 +676,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       {
         "chat_conversation.fields": CONVERSATION_FIELDS,
         expansions: "participant_ids,member_ids,admin_ids",
-        "user.fields": "id,name,username",
+        "user.fields": "id,name,username,profile_image_url",
       },
     );
     const normalized = this.normalizeConversation(
@@ -857,7 +882,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
     conversationID: string,
     keyVersion: string | null,
   ): Attachment | null {
-    const value = record(candidate);
+    const value = sdkFields(candidate);
     if (!value) return null;
     const mediaHashKey = string(value.mediaHashKey);
     const mediaType = string(value.mediaType);
@@ -887,7 +912,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       mediaType,
       filename,
       sourceURL: string(
-        value.url ?? value.legacyMediaUrlHttps ?? value.legacyMediaPreviewUrl,
+        value.url ?? value.postUrl ?? value.legacyMediaUrlHttps ?? value.legacyMediaPreviewUrl,
       ),
       providerData: value,
     };
@@ -901,7 +926,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
     const eventID = id(event.id ?? event.sequenceId);
     const conversationID = id(event.conversationId) ?? fallbackConversationID;
     if (!eventID) return null;
-    const content = record(event.content);
+    const content = sdkFields(event.content);
     const contentType = string(content?.contentType);
     const text = string(content?.text ?? content?.newText);
     const attachments = compactMap(
@@ -929,12 +954,12 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
           event.senderId === this.credential.accountUserID,
       });
     }
-    const replyPreview = record(content?.replyingToPreview);
+    const replyPreview = sdkFields(content?.replyingToPreview);
     return {
       messageID: messageID(conversationID, eventID),
       conversationID,
       senderID: id(event.senderId),
-      senderUsername: null,
+      senderUsername: this.senderProfiles.get(String(event.senderId))?.username ?? null,
       sentAt: isoTime(event.createdAtMsec),
       type,
       text,
@@ -957,6 +982,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       reactions: reaction,
       providerType: contentType ?? event.type,
       providerData: {
+        sender: this.senderProfiles.get(String(event.senderId)) ?? null,
         eventID,
         eventType: event.type,
         verified: event.verified ?? null,
@@ -986,11 +1012,10 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       options.limit,
       options.cursor,
     );
-    return this.withSession(this.session(conversation, page), (loaded) => ({
-        items: this.normalizedMessages(loaded, options.conversationID),
-        nextCursor: string(record(page.meta)?.next_token),
-      }),
-    );
+    return this.withSession(this.session(conversation, page), async (loaded) => {
+      await this.hydrateSenders(loaded);
+      return { items: this.normalizedMessages(loaded, options.conversationID), nextCursor: string(record(page.meta)?.next_token) };
+    });
   }
 
   private async locateMessage(value: string) {
@@ -1225,7 +1250,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
       const page = await this.getEvents(locator.conversationID, 100, cursor);
       await this.withSession(this.session(conversation, page), (loaded) => {
         for (const { event } of loaded.decrypted.messages) {
-          const content = record(event.content);
+          const content = sdkFields(event.content);
           if (id(content?.targetMessageId) !== locator.eventID) continue;
           const emoji = string(content?.emoji);
           const senderID = id(event.senderId);
