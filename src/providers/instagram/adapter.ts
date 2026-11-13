@@ -504,6 +504,7 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
     data: InstagramPage,
     conversationID: string,
     accountID: string,
+    requestedCursor: string | null = null,
   ) {
     const items = compactMap(array(data.data), (message) =>
       this.normalizeMessage(message, conversationID, accountID),
@@ -511,7 +512,12 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
     const cursor = string(data.paging?.cursors?.after);
     return {
       items,
-      nextCursor: string(data.paging?.next) && cursor ? cursor : null,
+      // Instagram can echo the requested cursor and next URL on an empty
+      // terminal page. Check raw rows, not normalized items: unsupported rows
+      // must not accidentally make an intermediate page look exhausted.
+      nextCursor: requestedCursor && cursor === requestedCursor && Array.isArray(data.data) && data.data.length === 0
+        ? null
+        : string(data.paging?.next) && cursor ? cursor : null,
     };
   }
 
@@ -540,6 +546,7 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
         embedded as InstagramPage,
         options.conversationID,
         accountID,
+        options.cursor,
       );
       return {
         ...messages,
@@ -571,6 +578,7 @@ export class InstagramAdapter extends ProviderAdapterBase implements ProviderAda
       data,
       options.conversationID,
       profile.accountID,
+      options.cursor,
     );
   }
 
