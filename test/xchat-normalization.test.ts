@@ -20,7 +20,7 @@ test("X runtime snake_case content preserves text, edits, reactions, replies and
   }
   const edit = normalize({ content_type: "edit", new_text: "Changed", target_message_id: "800" });
   assert.equal(edit.text, "Changed"); assert.equal(edit.providerData.targetMessageID, "800");
-  for (const content_type of ["reaction", "reactionRemoved"]) {
+  for (const content_type of ["reaction", "reactionRemoved", "markRead", "markUnread", "acceptMessageRequest"]) {
     const reaction = normalize({ content_type, emoji: "❤️", target_message_id: "800" });
     assert.equal(reaction.type, "system"); assert.equal(reaction.providerData.targetMessageID, "800");
   }
