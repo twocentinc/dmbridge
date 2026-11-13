@@ -28,6 +28,7 @@ import {
   type ProviderCapabilities,
   type Reaction,
 } from "../../protocol.js";
+import { recoverControlEvent } from "./control-events.js";
 import type { XCredential } from "./credentials.js";
 import { X_REFRESH_EARLY_MS } from "./oauth.js";
 import { ProviderClient } from "../http.js";
@@ -941,7 +942,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
     if (contentType === "text") type = attachments[0]?.type ?? "text";
     else if (contentType === "edit") type = "text";
     else if (event.type === "messageDeleted") type = "deleted";
-    else if (contentType && ["reaction", "reactionRemoved"].includes(contentType)) {
+    else if (contentType && ["reaction", "reactionRemoved", "markRead", "markUnread", "acceptMessageRequest"].includes(contentType)) {
       type = "system";
     }
     const reaction: Reaction[] = [];
@@ -998,7 +999,7 @@ export class XAdapter extends ProviderAdapterBase implements ProviderAdapter {
   ) {
     return compactMap(session.decrypted.messages, ({ event, originalB64 }) =>
       this.normalizeEvent(
-        event,
+        recoverControlEvent(event, originalB64, session.chat, session.keys),
         originalB64,
         conversationID,
       ),
