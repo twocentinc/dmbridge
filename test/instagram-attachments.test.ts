@@ -119,3 +119,23 @@ test("Instagram conversation fixtures cover groups, pagination, and an empty pag
   );
   assert.deepEqual(second, { items: [], nextCursor: null });
 });
+
+for (const embedded of [false, true]) {
+  for (const scenario of ["terminal", "advancing", "nonempty", "filtered"] as const) {
+    test(`Instagram ${embedded ? "embedded" : "direct"} pagination: ${scenario}`, async (t) => {
+      const data = scenario === "nonempty" ? [{ id: "message-1", message: "fixture" }] : scenario === "filtered" ? [{}] : [];
+      const cursor = scenario === "advancing" ? "next" : "current";
+      const page = { data, paging: { cursors: { after: cursor }, next: "https://graph.instagram.com/next" } };
+      const conversation = { id: "conversation-1", participants: { data: [{ id: "self" }, { id: "other" }] } };
+      mockRoutes(t, {
+        "GET /me?": { user_id: "self" },
+        "GET /self/conversations?": { data: embedded ? [{ ...conversation, messages: page }] : [] },
+        "GET /conversation-1/messages?": page,
+      }, conversation);
+      const adapter = new InstagramAdapter(instagramCredential(), "personal");
+      const result = await adapter.listMessages(pageOptions({ conversationID: "conversation-1", cursor: "current" }));
+      assert.equal(result.nextCursor, scenario === "terminal" ? null : cursor);
+      assert.equal(result.items.length, scenario === "nonempty" ? 1 : 0);
+    });
+  }
+}
